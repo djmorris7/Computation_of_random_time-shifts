@@ -568,11 +568,6 @@ end
 Run the experiment for the h step sizes. 
 """
 function run_h_experiment()
-    """
-    This experiment is more of a heuristic argument. It relies on comparing the solve time
-    for varied h in the ODE solver to the overall runtime of the method. 
-    """
-
     figures_dir, results_dir = make_dirs("SEIR")
     Random.seed!(2023)
 
