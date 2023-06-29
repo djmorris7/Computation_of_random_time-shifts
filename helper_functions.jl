@@ -1,4 +1,22 @@
 """
+    summarise_t(t::S, X::T) where {S,T}
+    
+Summarises a time-series of observations `X` where the observations are taken 
+at `t`.
+"""
+function summarise_t(t::S, X::T) where {S, T}
+    df_res = DataFrame(;
+                       t = t,
+                       mean = mean(X; dims = 2)[:],
+                       bottom = quantile.(eachrow(X), 0.05)[:],
+                       lower = quantile.(eachrow(X), 0.25)[:],
+                       median = quantile.(eachrow(X), 0.50)[:],
+                       upper = quantile.(eachrow(X), 0.75)[:],
+                       top = quantile.(eachrow(X), 0.95)[:])
+    return df_res
+end
+
+"""
     make_dirs(example_name)
 
 Makes directories in the current project directory for figures and results based on the 
