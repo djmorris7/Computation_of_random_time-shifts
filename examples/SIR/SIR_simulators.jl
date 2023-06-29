@@ -10,6 +10,18 @@ using the Gillespie algorithm. The model is parameterized with the basic reprodu
 the average infectious period (γ_inv), and the total population size (K), and is initialized with
 an initial state of (S, I, R) = Z0. The simulation runs for a time period of tf, with outputs saved
 every save_at time steps.
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    K = population size
+    Z0 = intial conditions for the SIR model 
+    tf = max simulation time
+    save_at = how frequently to save the simulation
+    
+Outputs:
+    t_vec = simulation times 
+    Z_mat = Output matrix 
+    extinct = whether the process went extinct or not 
 """
 function sir_exact_gillespie(pars, K, Z0; tf = 100.0, save_at = 1.0)
     (R0, γ_inv) = pars
@@ -81,6 +93,16 @@ Estimate the time taken for the infectious population in an Susceptible-Infected
 to exceed target_Z using the Gillespie algorithm. The model is parameterized with the basic reproduction number (R0),
 the average infectious period (γ_inv), and the total population size (K), and is initialized with
 an initial state of (S, I, R) = Z0. 
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    K = population size
+    Z0 = intial conditions for the SIR model 
+    target_Z = the target number of infected to hit to estimate the hitting time
+    tf = max simulation time
+    
+Outputs:
+    t = the time taken to reach I >= target_Z 
 """
 function sir_hitting_times(pars, K, Z0, target_Z; tf = 100.0)
     (R0, γ_inv) = pars
@@ -129,6 +151,16 @@ Estimate the time taken for the infectious population to peak in an Susceptible-
 using a hybrid Gillespie / Tau-leap algorithm. The model is parameterized with the basic reproduction number (R0),
 the average infectious period (γ_inv), and the total population size (K), and is initialized with
 an initial state of (S, I, R) = Z0.
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    K = population size
+    Z0 = intial conditions for the SIR model 
+    τ = step size for the tau-leaping
+    tf = max simulation time
+    
+Outputs:
+    peak_time = the timing of the peak
 """
 function sir_peak_times(pars, K, Z0, τ; tf = 100.0)
     (R0, γ_inv) = pars
@@ -190,6 +222,18 @@ using a hybrid Gillespie / Tau-leap algorithm. The model is parameterized with t
 the average infectious period (γ_inv), and the total population size (K), and is initialized with
 an initial state of (S, I, R) = Z0. The simulation runs for a time period of tf, with outputs saved
 every save_at time steps.
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    I0 = the initial number of infected individuals
+    τ = step size for the tau-leaping
+    tf = max simulation time
+    save_at = how frequently to save the simulation
+    
+Outputs:
+    t_vec = simulation times 
+    I_mat = output array for number of infected at times given by t_vec 
+    extinct = whether the process went extinct or not 
 """
 function sir_bp_gillespie_hybrid(pars, I0, τ; tf = 100.0, save_at = 1.0)
     (R0, γ_inv) = pars

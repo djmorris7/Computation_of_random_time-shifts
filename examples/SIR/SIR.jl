@@ -26,6 +26,18 @@ The model is parameterized with the basic reproduction number (R0), the average 
 and the total population size (K), and is initialized with
 an initial state of (S, I, R) = Z0. The simulation runs for a time period of tf, with outputs saved
 every save_at time steps. 
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    K = population size
+    Z0 = intial conditions for the SIR model 
+    nsims = number of simulations to run
+    obs_t = max simulation time
+    save_at = how frequently to save the simulation
+    
+Outputs:
+    samples = an array of shape (save times, nsims) which has the number 
+              of I at each save time per row. 
 """
 function simulate_SIR_n_times(pars, Z0, K, nsims, obs_t; save_at = 1.0,
                               condition_on_non_extinction = true)
@@ -49,6 +61,15 @@ end
     
 Evaluate the system of ordinary differential equations for the SIR model with parameters 
 pars = (R0, γ_inv).
+
+Arguments: 
+    du = required for inplace calculations when using OrdinaryDiffEq
+    u = current state
+    pars = model parameters in form (R0, γ_inv)
+    t = dummy variable for the current time
+    
+Outputs: 
+    None
 """
 function sir_deterministic!(du, u, pars, t)
     R0, γ_inv = pars
@@ -79,6 +100,15 @@ end
     
 Simulates the introductory data for the SIR example (the first figures) from both 
 the deterministic and stochastic models. 
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    Z0 = intial conditions for the SIR model 
+    K = population size
+    
+    
+Outputs:
+    None
 """
 function simulate_intro_data(pars, Z0, K, results_dir)
     nsims = 5
@@ -114,7 +144,16 @@ end
 """
     simulate_peak_timings(pars, Z0, K, results_dir)
     
-This simulates peak timings using SSA and saves them.
+This simulates a number of peak timings using SSA and saves them.
+
+Arguments: 
+    pars = parameters of the SIR model (R0, γ_inv)
+    Z0 = intial conditions for the SIR model 
+    K = population size
+    results_dir = directory for results
+    
+Outputs:
+    peak_time = the timing of the peak
 """
 function simulate_peak_timings(pars, Z0, K, results_dir)
     obs_t = 70
@@ -139,6 +178,15 @@ end
     simulate_tau_mapping(pars, Z0, K, results_dir)
     
 Simulates the data for the mapping between W(20), t_intercept and tau. 
+    
+Arguments:
+    pars = parameters of the SIR model 
+    Z0 = initial conditions for the SIR model (unused)
+    K = population size (unused)
+    results_dir = directory for results
+    
+Outputs: 
+    None
 """
 function simulate_tau_mapping(pars, Z0, K, results_dir)
     t_range = 0:50
@@ -248,6 +296,15 @@ end
     simulate_W_samples(pars, Z0, K, results_dir)
     
 Draws samples of W from the distribution specified in Barbour (Exp(1 - q)). 
+
+Arguments:
+    pars = parameters of the SIR model 
+    Z0 = initial conditions for the SIR model (unused)
+    K = population size (unused)
+    results_dir = directory for results
+        
+Outputs:
+    None
 """
 function draw_W_samples(pars, Z0, K, results_dir)
     nsims = 100000
@@ -294,7 +351,6 @@ function draw_W_samples(pars, Z0, K, results_dir)
         # The distribution of W is a unit Exponential following the 
         # arguments in Barbour et al. renormalised to account for 
         # removal of the point mass at 0. 
-
         if condition_on_non_extinction
             faded_out = false
         else

@@ -20,6 +20,16 @@ using RandomTimeShifts
     diff_SIR_coeffs(β, lifetimes, λ, phis)
     
 Function which differentiates the functional equation of the PGF and LST. 
+        
+Arguments: 
+    β = effective transmission parameter 
+    lifetimes = β + γ
+    λ = the growth rate 
+    phis = the previous moments used to calculate the nth moment
+    
+Outputs: 
+    A[1] = coefficient of nth moment
+    b = constant term
 """
 function diff_SIR_coeffs(β, lifetimes, λ, phis)
     n_previous = length(phis)
@@ -30,11 +40,19 @@ function diff_SIR_coeffs(β, lifetimes, λ, phis)
 end
 
 """
-    ricatti_ode(u, pars, t)
+    F_fixed_s(u, pars, t)
 
-Evaluates the Ricatti ODE for F(s, t) where s = u0.
+Evaluates the Ricatti ODE governing F(s, t) for fixed u0 = s.
+
+Arguments: 
+    u = current state
+    pars = (R0, γ_inv)
+    t = dummy variable for the current time 
+    
+Outputs: 
+    du = value of ODE
 """
-function ricatti_ode(u, pars, t)
+function F_fixed_s(u, pars, t)
     R0, γ_inv = pars
     γ = 1 / γ_inv
     β = R0 * γ
@@ -50,16 +68,26 @@ with pars = (R0, γ_inv).
 """
 function F_offspring_ode(s, t, pars)
     u0 = s[1]
-    prob = ODEProblem(ricatti_ode, u0, (0, t), pars)
+    prob = ODEProblem(F_fixed_s, u0, (0, t), pars)
     sol = solve(prob, Tsit5(); save_start = false)
 
     return sol.u[end]
 end
 
 """
-    sir_deterministic!(du, u, pars, t)
+sir_deterministic!(du, u, pars, t)
     
-Formulate the deterministic SIR model with pars = (R0, γ_inv).
+Evaluate the system of ordinary differential equations for the SIR model with parameters 
+pars = (R0, γ_inv).
+
+Arguments: 
+    du = required for inplace calculations when using OrdinaryDiffEq
+    u = current state
+    pars = model parameters in form (R0, γ_inv)
+    t = dummy variable for the current time
+    
+Outputs: 
+    None
 """
 function sir_deterministic!(du, u, pars, t)
     R0, γ_inv = pars
@@ -79,6 +107,15 @@ end
     compute_time_shift_distribution(pars, K, Z0, results_dir)
     
 Computes the LST using our method and inverts it. 
+
+Arguments: 
+    pars = (R0, γ_inv)
+    K = population size 
+    Z0 = initial condition for the SIR model
+    results_dir = output directory
+    
+Outputs: 
+    None
 """
 function compute_time_shift_distribution(pars, K, Z0, results_dir)
     (R0, γ_inv) = pars
@@ -107,7 +144,7 @@ function compute_time_shift_distribution(pars, K, Z0, results_dir)
     u0 = 0.5
     h = 0.1
 
-    prob = ODEProblem(ricatti_ode, u0, (0, h), pars)
+    prob = ODEProblem(F_fixed_s, u0, (0, h), pars)
     sol = solve(prob, Tsit5(); abstol = 1e-11, reltol = 1e-11)
 
     μ = exp(λ * h)
@@ -150,6 +187,15 @@ end
 
 Estimates the time-shift distributions empirically using the difference in hitting times 
 between the deterministic and stochastic simulations. 
+
+Arguments: 
+    pars = (R0, γ_inv)
+    K = population size 
+    Z0 = initial condition for the SIR model
+    results_dir = output directory
+    
+Outputs: 
+    None
 """
 function estimate_time_shifts(pars, K, Z0, results_dir)
     obs_t = 70
