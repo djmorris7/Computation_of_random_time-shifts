@@ -16,7 +16,7 @@ include("SEIR_simulators.jl")
 include("../../helper_functions.jl")
 
 using Pkg
-Pkg.develop(PackageSpec(path = "RandomTimeShifts.jl"))
+Pkg.add(url="https://github.com/djmorris7/RandomTimeShifts.jl")
 using RandomTimeShifts
 
 ##

@@ -12,9 +12,9 @@ using StaticArrays
 
 include("TCL_receptor_simulators.jl")
 include("../../helper_functions.jl")
-# using RandomTimeShifts
+
 using Pkg
-Pkg.develop(PackageSpec(path = "RandomTimeShifts.jl"))
+Pkg.add(url = "https://github.com/djmorris7/RandomTimeShifts.jl")
 using RandomTimeShifts
 
 ##
