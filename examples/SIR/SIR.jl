@@ -13,10 +13,6 @@ using CSV
 include("./SIR_simulators.jl")
 include("../../helper_functions.jl")
 
-using Pkg
-Pkg.develop(PackageSpec(path = "RandomTimeShifts.jl"))
-using RandomTimeShifts
-
 """
     simulate_SIR_n_times(pars, Z0, K, nsims, obs_t; save_at = 1.0,
                          condition_on_non_extinction = true)

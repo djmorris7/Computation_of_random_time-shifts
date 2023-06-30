@@ -7,8 +7,7 @@ Code supporting the manuscript:
 
 All code in this repository is to run the examples in the manuscript and users will also need `RandomTimeShifts.jl` to
 run the different computations needed to recreate the analyses.
-You can clone `RandomTimeShifts.jl` inside this directory and then the code will load the namespace in easily
-(**Note that we intend to change this behaviour once the package is stable enough.**)
+See the [RandomTimeShifts.jl](https://github.com/djmorris7/RandomTimeShifts.jl) documentation for how to add the unregistered package directly from Github.
 
 ## Running examples
 

@@ -11,8 +11,8 @@ using SpecialFunctions
 include("./SIR_simulators.jl")
 include("../../helper_functions.jl")
 
-using Pkg
-Pkg.add(url = "https://github.com/djmorris7/RandomTimeShifts.jl")
+# using Pkg
+# Pkg.add(url = "https://github.com/djmorris7/RandomTimeShifts.jl")
 using RandomTimeShifts
 
 ##
