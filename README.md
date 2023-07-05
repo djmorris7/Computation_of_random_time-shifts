@@ -3,22 +3,31 @@
 Code supporting the manuscript:
 > Dylan Morris, John Maclean and Andrew J. Black., 2023. Computation of random time shift distributions for stochastic population models.
 
-## Dependencies
+## Installation
 
-All code in this repository is to run the examples in the manuscript and users will also need `RandomTimeShifts.jl` to
-run the different computations needed to recreate the analyses.
-See the [RandomTimeShifts.jl](https://github.com/djmorris7/RandomTimeShifts.jl) documentation for how to add the unregistered package directly from Github.
+To locally reproduce this project you'll need to clone the repository and then run in a Julia terminal: 
+
+```
+julia> using Pkg
+julia> Pkg.activate("path/to/this/project")
+julia> Pkg.instantiate()
+```
+
+This will download all depdencies for the project except our module `RandomTimeShifts.jl`. 
+To install this you can see [RandomTimeShifts.jl](https://github.com/djmorris7/RandomTimeShifts.jl) documentation for how to add the unregistered package directly from Github.
+The dependencies for `RandomTimeShifts.jl` are installed automatically. 
 
 ## Running examples
 
 All the examples feature in the `examples/` folder and are self contained.
 To run an example model run the `*_main.jl` functions inside the relevant examples folder.
+You can the `*_main.jl` files as scripts and all plots and results will be saved in relevant locations. 
 These run the different examples from the paper and produce the same results from the paper.
-These scripts will setup the appropriate file paths needed for saving output.
 
 ## Visualising the outputs
 
 The `plots.ipynb` notebook produces all the plots for the paper pulling results from the `examples/results/` directory.
+**Note:** this notebook and all the plot code is in Python and so you'll need an install of that in order to reproduce the figures presented in the paper.
 There is also an additional example of how this methodology
 works on a simple branching process model where results are well established, the linear fractional model (as shown in
 Kimmel and Axelrod (2015)).
