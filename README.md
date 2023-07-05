@@ -14,8 +14,9 @@ julia> Pkg.instantiate()
 ```
 
 This will download all depdencies for the project except our module `RandomTimeShifts.jl`. 
-To install this you can see [RandomTimeShifts.jl](https://github.com/djmorris7/RandomTimeShifts.jl) documentation for how to add the unregistered package directly from Github.
-The dependencies for `RandomTimeShifts.jl` are installed automatically. 
+To install this see the documentation of [RandomTimeShifts.jl](https://github.com/djmorris7/RandomTimeShifts.jl). 
+This package needs only be added once in a particular environment and can take some time due to the dependency on `OrdinaryDiffEq.jl` which is a relatively large package. 
+Note that all the dependencies for `RandomTimeShifts.jl` are installed automatically. 
 
 ## Running examples
 
