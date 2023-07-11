@@ -62,8 +62,8 @@ function diff_SEIR_coeffs!(A, b, β, lifetimes, λ, phis)
     n = n_previous + 1
 
     coeffs_linear, C1 = RandomTimeShifts.diff_linear(lifetimes[1], n, λ, 2, 2)
-    coeffs_quadratic, C2 = RandomTimeShifts.diff_quadratic(β, lifetimes[2], n, λ, phis;
-                                                           phi_idxs = [2, 1, 2])
+    coeffs_quadratic, C2 = RandomTimeShifts.diff_quadratic(β, lifetimes[2], n, λ, phis,
+                                                           [2, 1, 2])
 
     coeffs_linear += RandomTimeShifts.lhs_coeffs(1; num_phis = 2)
     coeffs_quadratic += RandomTimeShifts.lhs_coeffs(2; num_phis = 2)

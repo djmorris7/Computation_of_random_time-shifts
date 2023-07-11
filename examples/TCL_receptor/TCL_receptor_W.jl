@@ -46,10 +46,10 @@ function diff_TCL_receptor_coeffs!(A, b, pars, lifetimes, λ, phis)
     # Calculate the coefficients and constants from differentiation of the functional equation. 
     coeffs1, C1 = RandomTimeShifts.diff_linear(lifetimes[1], n, λ, 2, num_phis; b = σ)
     # Coefficients for LT 2 is the sum of 2 factors. 
-    coeffs21, C21 = RandomTimeShifts.diff_quadratic(p_v, lifetimes[2], n, λ, phis;
-                                                    phi_idxs = [2, 2, 3])
-    coeffs22, C22 = RandomTimeShifts.diff_quadratic(β2, lifetimes[2], n, λ, phis;
-                                                    phi_idxs = [2, 2, 1])
+    coeffs21, C21 = RandomTimeShifts.diff_quadratic(p_v, lifetimes[2], n, λ, phis,
+                                                    [2, 2, 3])
+    coeffs22, C22 = RandomTimeShifts.diff_quadratic(β2, lifetimes[2], n, λ, phis,
+                                                    [2, 2, 1])
     coeffs2 = coeffs21 + coeffs22
     C2 = C21 + C22
     coeffs3, C3 = RandomTimeShifts.diff_linear(lifetimes[3], n, λ, 1, num_phis; b = β1)
