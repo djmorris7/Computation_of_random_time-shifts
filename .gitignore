@@ -167,7 +167,7 @@ dmypy.json
 .Rhistory
 
 #exported (to html) notebooks 
-*.html
+# *.html
 
 .RData
 *.Rproj

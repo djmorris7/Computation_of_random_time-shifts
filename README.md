@@ -32,3 +32,8 @@ The `plots.ipynb` notebook produces all the plots for the paper pulling results 
 There is also an additional example of how this methodology
 works on a simple branching process model where results are well established, the linear fractional model (as shown in
 Kimmel and Axelrod (2015)).
+
+## Tutorial
+
+A tutorial for working with the package is hosted [here](https://djmorris7.github.io/Computation_of_random_time-shifts/).
+This example walks through how the SEIR model as presented in the paper, can be formulated in the time-shift framework for estimating $W$ and hence the time-shift $\tau$.
