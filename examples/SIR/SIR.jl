@@ -9,7 +9,7 @@ using CSV
 
 ##
 
-# Includes relative to this files location. 
+# Includes relative to this files location.
 include("./SIR_simulators.jl")
 include("../../helper_functions.jl")
 
@@ -17,31 +17,33 @@ include("../../helper_functions.jl")
     simulate_SIR_n_times(pars, Z0, K, nsims, obs_t; save_at = 1.0,
                          condition_on_non_extinction = true)
 
-Simulate a Susceptible-Infected-Recovered (SIR) epidemic model nsims times using the Gillespie algorithm. 
-The model is parameterized with the basic reproduction number (R0), the average infectious period (γ_inv), 
+Simulate a Susceptible-Infected-Recovered (SIR) epidemic model nsims times using the Gillespie algorithm.
+The model is parameterized with the basic reproduction number (R0), the average infectious period (γ_inv),
 and the total population size (K), and is initialized with
 an initial state of (S, I, R) = Z0. The simulation runs for a time period of tf, with outputs saved
-every save_at time steps. 
+every save_at time steps.
 
-Arguments: 
-    pars = parameters of the SIR model (R0, γ_inv)
-    K = population size
-    Z0 = intial conditions for the SIR model 
-    nsims = number of simulations to run
-    obs_t = max simulation time
-    save_at = how frequently to save the simulation
-    
-Outputs:
-    samples = an array of shape (save times, nsims) which has the number 
-              of I at each save time per row. 
+# Arguments
+    - pars: parameters of the SIR model (R0, γ_inv)
+    - K: population size
+    - Z0: intial conditions for the SIR model
+    - nsims: number of simulations to run
+    - obs_t: max simulation time
+    - save_at: how frequently to save the simulation
+
+# Outputs
+    - samples: an array of shape (save times, nsims) which has the number
+               of I at each save time per row.
 """
-function simulate_SIR_n_times(pars, Z0, K, nsims, obs_t; save_at = 1.0,
-                              condition_on_non_extinction = true)
+function simulate_SIR_n_times(
+    pars, Z0, K, nsims, obs_t; save_at = 1.0, condition_on_non_extinction = true
+)
     samples = zeros(Int, ceil(Int, obs_t / save_at) + 1, nsims)
     i = 1
     while i <= nsims
-        t_out, Z_out, extinct = sir_exact_gillespie(pars, K, Z0; tf = obs_t,
-                                                    save_at = save_at)
+        t_out, Z_out, extinct = sir_exact_gillespie(
+            pars, K, Z0; tf = obs_t, save_at = save_at
+        )
 
         if (condition_on_non_extinction & !extinct) | (!condition_on_non_extinction)
             samples[:, i] .= @view Z_out[2:3:end]
@@ -54,18 +56,18 @@ end
 
 """
     sir_deterministic!(du, u, pars, t)
-    
-Evaluate the system of ordinary differential equations for the SIR model with parameters 
+
+Evaluate the system of ordinary differential equations for the SIR model with parameters
 pars = (R0, γ_inv).
 
-Arguments: 
-    du = required for inplace calculations when using OrdinaryDiffEq
-    u = current state
-    pars = model parameters in form (R0, γ_inv)
-    t = dummy variable for the current time
-    
-Outputs: 
-    None
+# Arguments
+    - du: required for inplace calculations when using OrdinaryDiffEq
+    - u: current state
+    - pars: model parameters in form (R0, γ_inv)
+    - t: dummy variable for the current time
+
+# Outputs
+    - None
 """
 function sir_deterministic!(du, u, pars, t)
     R0, γ_inv = pars
@@ -83,8 +85,8 @@ end
 
 """
     log_det_linear(x0, y0, x, λ)
-Evaluates the log-det linear relationship for a given point (x0, y0) on the line with slope λ. 
-Used to generate the figure in the SIR example. 
+Evaluates the log-det linear relationship for a given point (x0, y0) on the line with slope λ.
+Used to generate the figure in the SIR example.
 """
 function log_det_linear(x0, y0, x, λ)
     c = y0 - x0 * λ
@@ -93,18 +95,18 @@ end
 
 """
     simulate_intro_data(pars, Z0, K, results_dir)
-    
-Simulates the introductory data for the SIR example (the first figures) from both 
-the deterministic and stochastic models. 
 
-Arguments: 
-    pars = parameters of the SIR model (R0, γ_inv)
-    Z0 = intial conditions for the SIR model 
-    K = population size
-    
-    
-Outputs:
-    None
+Simulates the introductory data for the SIR example (the first figures) from both
+the deterministic and stochastic models.
+
+# Arguments
+    - pars: parameters of the SIR model (R0, γ_inv)
+    - Z0: intial conditions for the SIR model
+    - K: population size
+
+
+# Outputs
+    - None
 """
 function simulate_intro_data(pars, Z0, K, results_dir)
     nsims = 5
@@ -112,13 +114,15 @@ function simulate_intro_data(pars, Z0, K, results_dir)
     Δt = 0.1
 
     condition_on_non_extinction = true
-    samples = simulate_SIR_n_times(pars,
-                                   Z0,
-                                   K,
-                                   nsims,
-                                   obs_t;
-                                   save_at = Δt,
-                                   condition_on_non_extinction = condition_on_non_extinction)
+    samples = simulate_SIR_n_times(
+        pars,
+        Z0,
+        K,
+        nsims,
+        obs_t;
+        save_at = Δt,
+        condition_on_non_extinction = condition_on_non_extinction
+    )
 
     u0 = Z0 / K
     u0[3] = log(u0[2])
@@ -132,24 +136,26 @@ function simulate_intro_data(pars, Z0, K, results_dir)
     df_tmp = DataFrame(samples, :auto)
     df_tmp.t .= t_range
 
-    CSV.write(joinpath(results_dir, "det_samples.csv"),
-              DataFrame(; t = sol.t, I = K * exp.(sol.u)))
-    CSV.write(joinpath(results_dir, "stoch_samples.csv"), df_tmp)
+    CSV.write(
+        joinpath(results_dir, "det_samples.csv"),
+        DataFrame(; t = sol.t, I = K * exp.(sol.u))
+    )
+    return CSV.write(joinpath(results_dir, "stoch_samples.csv"), df_tmp)
 end
 
 """
     simulate_peak_timings(pars, Z0, K, results_dir)
-    
+
 This simulates a number of peak timings using SSA and saves them.
 
-Arguments: 
-    pars = parameters of the SIR model (R0, γ_inv)
-    Z0 = intial conditions for the SIR model 
-    K = population size
-    results_dir = directory for results
-    
-Outputs:
-    peak_time = the timing of the peak
+# Arguments
+    - pars: parameters of the SIR model (R0, γ_inv)
+    - Z0: intial conditions for the SIR model
+    - K: population size
+    - results_dir: directory for results
+
+# Outputs
+    - peak_time: the timing of the peak
 """
 function simulate_peak_timings(pars, Z0, K, results_dir)
     obs_t = 70
@@ -166,23 +172,24 @@ function simulate_peak_timings(pars, Z0, K, results_dir)
         peak_timings[i] = peak_time
     end
 
-    CSV.write(joinpath(results_dir, "peak_timings.csv"),
-              DataFrame(; peak_timings = peak_timings))
+    return CSV.write(
+        joinpath(results_dir, "peak_timings.csv"), DataFrame(; peak_timings = peak_timings)
+    )
 end
 
 """
     simulate_tau_mapping(pars, Z0, K, results_dir)
-    
-Simulates the data for the mapping between W(20), t_intercept and tau. 
-    
-Arguments:
-    pars = parameters of the SIR model 
-    Z0 = initial conditions for the SIR model (unused)
-    K = population size (unused)
-    results_dir = directory for results
-    
-Outputs: 
-    None
+
+Simulates the data for the mapping between W(20), t_intercept and tau.
+
+# Arguments
+    - pars: parameters of the SIR model
+    - Z0: initial conditions for the SIR model (unused)
+    - K: population size (unused)
+    - results_dir: directory for results
+
+# Outputs
+    - None
 """
 function simulate_tau_mapping(pars, Z0, K, results_dir)
     t_range = 0:50
@@ -202,8 +209,9 @@ function simulate_tau_mapping(pars, Z0, K, results_dir)
 
     j = 1
     while j <= nsims
-        t, Z, extinct = sir_bp_gillespie_hybrid(pars, 1, τ; tf = t_range[end],
-                                                save_at = save_at)
+        t, Z, extinct = sir_bp_gillespie_hybrid(
+            pars, 1, τ; tf = t_range[end], save_at = save_at
+        )
         if !extinct
             bp_samples[:, j] .= Z
             W_samples[:, j] .= Z .* W_scaling
@@ -212,14 +220,16 @@ function simulate_tau_mapping(pars, Z0, K, results_dir)
     end
 
     I_target = 2000
-    hitting_times = [ifelse(any(c .> I_target), t_range[findfirst(c .> I_target)], -Inf)
-                     for c in eachcol(bp_samples)]
+    hitting_times = [
+        ifelse(any(c .> I_target), t_range[findfirst(c .> I_target)], -Inf) for
+        c in eachcol(bp_samples)
+    ]
 
     quantiles = [0.025, 0.5, 0.975]
     hitting_times_to_plot = [
         quantile(hitting_times, quantiles[1]),
         median(hitting_times),
-        quantile(hitting_times, quantiles[3]),
+        quantile(hitting_times, quantiles[3])
     ]
     hitting_time_intervals = []
     for (i, h) in enumerate(hitting_times_to_plot)
@@ -228,9 +238,12 @@ function simulate_tau_mapping(pars, Z0, K, results_dir)
         push!(hitting_time_intervals, (lower, upper))
     end
 
-    hitting_time_idx = [findfirst((hitting_times .>= hitting_time_intervals[i][1]) .&&
-                                  (hitting_times .<= hitting_time_intervals[i][2]))
-                        for i in eachindex(hitting_time_intervals)]
+    hitting_time_idx = [
+        findfirst(
+            (hitting_times .>= hitting_time_intervals[i][1]) .&&
+            (hitting_times .<= hitting_time_intervals[i][2])
+        ) for i in eachindex(hitting_time_intervals)
+    ]
 
     slopes = diff(log.(bp_samples[:, hitting_time_idx]); dims = 1) / diff(t_range)[1]
     moving_avg_slopes = cumsum(slopes; dims = 1) ./ (1:size(slopes, 1))
@@ -239,25 +252,29 @@ function simulate_tau_mapping(pars, Z0, K, results_dir)
 
     t_range_lin = -10:0.1:(t_prime + 10)
     xs = hitting_times[hitting_time_idx]
-    ys = [log(bp_samples[findfirst(t_range .>= x), i])
-          for (x, i) in zip(xs, hitting_time_idx)]
+    ys = [
+        log(bp_samples[findfirst(t_range .>= x), i]) for (x, i) in zip(xs, hitting_time_idx)
+    ]
 
     df = DataFrame()
 
     for (x, y, idx, q) in zip(xs, ys, hitting_time_idx, quantiles)
         df_tmp = DataFrame(;
-                           t = t_range_lin,
-                           y = log_det_linear.(x, y, t_range_lin, λ),
-                           x0 = x,
-                           y0 = y,
-                           type = "proj_$(q*100)")
+            t = t_range_lin,
+            y = log_det_linear.(x, y, t_range_lin, λ),
+            x0 = x,
+            y0 = y,
+            type = "proj_$(q*100)"
+        )
         df = [df; df_tmp]
 
-        df_tmp = DataFrame(t = t_range[t_range .<= t_prime + 5],
-                           y = log.(bp_samples[t_range .<= t_prime + 5, idx]),
-                           x0 = missing,
-                           y0 = missing,
-                           type = "$(q*100)")
+        df_tmp = DataFrame(
+            t = t_range[t_range .<= t_prime + 5],
+            y = log.(bp_samples[t_range .<= t_prime + 5, idx]),
+            x0 = missing,
+            y0 = missing,
+            type = "$(q*100)"
+        )
 
         df = [df; df_tmp]
     end
@@ -265,9 +282,10 @@ function simulate_tau_mapping(pars, Z0, K, results_dir)
     CSV.write(joinpath(results_dir, "tau_mapping.csv"), df)
 
     I_target = 2000
-    hitting_times = [ifelse(any(c .> I_target), t_range[findfirst(c .> I_target)], -Inf)
-                     for
-                     c in eachcol(bp_samples)]
+    hitting_times = [
+        ifelse(any(c .> I_target), t_range[findfirst(c .> I_target)], -Inf) for
+        c in eachcol(bp_samples)
+    ]
 
     slopes = diff(log.(bp_samples); dims = 1) / diff(t_range)[1]
     moving_avg_slopes = cumsum(slopes; dims = 1) ./ (1:size(slopes, 1))
@@ -285,22 +303,22 @@ function simulate_tau_mapping(pars, Z0, K, results_dir)
         df = [df; df_tmp]
     end
 
-    CSV.write(joinpath(results_dir, "tau_log_state.csv"), df)
+    return CSV.write(joinpath(results_dir, "tau_log_state.csv"), df)
 end
 
 """
     simulate_W_samples(pars, Z0, K, results_dir)
-    
-Draws samples of W from the distribution specified in Barbour (Exp(1 - q)). 
 
-Arguments:
-    pars = parameters of the SIR model 
-    Z0 = initial conditions for the SIR model (unused)
-    K = population size (unused)
-    results_dir = directory for results
-        
-Outputs:
-    None
+Draws samples of W from the distribution specified in Barbour (Exp(1 - q)).
+
+# Arguments
+    - pars: parameters of the SIR model
+    - Z0: initial conditions for the SIR model (unused)
+    - K: population size (unused)
+    - results_dir: directory for results
+
+# Outputs
+    - None
 """
 function draw_W_samples(pars, Z0, K, results_dir)
     nsims = 100000
@@ -310,8 +328,14 @@ function draw_W_samples(pars, Z0, K, results_dir)
     condition_on_non_extinction = true
 
     if !isfile(joinpath(results_dir, "exact_samples.csv")) || run_ssa
-        samples = simulate_SIR_n_times(pars, Z0, K, nsims, obs_t;
-                                       condition_on_non_extinction = condition_on_non_extinction)
+        samples = simulate_SIR_n_times(
+            pars,
+            Z0,
+            K,
+            nsims,
+            obs_t;
+            condition_on_non_extinction = condition_on_non_extinction
+        )
     else
         samples = Matrix(CSV.read(joinpath(results_dir, "exact_samples.csv"), DataFrame))
     end
@@ -326,8 +350,9 @@ function draw_W_samples(pars, Z0, K, results_dir)
     β = R0 * γ
 
     prob = ODEProblem(sir_deterministic!, u0, tspan, pars)
-    sol = solve(prob, Tsit5(); saveat = 0.0001, abstol = 1e-13, reltol = 1e-13,
-                save_idxs = 3)
+    sol = solve(
+        prob, Tsit5(); saveat = 0.0001, abstol = 1e-13, reltol = 1e-13, save_idxs = 3
+    )
     μ_w = 1
     r = β - γ
 
@@ -344,9 +369,9 @@ function draw_W_samples(pars, Z0, K, results_dir)
     times_shifted = zeros(Float64, length(times))
 
     @showprogress for i in 1:nsims
-        # The distribution of W is a unit Exponential following the 
-        # arguments in Barbour et al. renormalised to account for 
-        # removal of the point mass at 0. 
+        # The distribution of W is a unit Exponential following the
+        # arguments in Barbour et al. renormalised to account for
+        # removal of the point mass at 0.
         if condition_on_non_extinction
             faded_out = false
         else
@@ -359,12 +384,14 @@ function draw_W_samples(pars, Z0, K, results_dir)
             @. times_shifted = times + t_shift
 
             if any(x -> x > 0, times_shifted)
-                sol = solve(prob,
-                            Tsit5();
-                            saveat = times_shifted[times_shifted .> 0],
-                            abstol = 1e-12,
-                            reltol = 1e-12,
-                            save_idxs = 3)
+                sol = solve(
+                    prob,
+                    Tsit5();
+                    saveat = times_shifted[times_shifted .> 0],
+                    abstol = 1e-12,
+                    reltol = 1e-12,
+                    save_idxs = 3
+                )
 
                 samples[times_shifted .<= 0, i] .= Z0[2]
                 samples[times_shifted .> 0, i] .= round.(Int, exp.(log(K) .+ sol.u))
@@ -381,5 +408,5 @@ function draw_W_samples(pars, Z0, K, results_dir)
     df_summ_shift.method .= "timeshift"
     df_summ_comb = [df_summ_exact; df_summ_shift]
 
-    CSV.write(joinpath(results_dir, "df_summ_both.csv"), df_summ_comb)
+    return CSV.write(joinpath(results_dir, "df_summ_both.csv"), df_summ_comb)
 end

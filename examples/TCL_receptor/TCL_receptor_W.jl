@@ -21,20 +21,20 @@ using RandomTimeShifts
 
 """
     diff_TCL_receptor_coeffs!(A, b, pars, lifetimes, λ, phis)
-    
-Differentiates the functional equation governing the LST's and progeny generating functions 
+
+Differentiates the functional equation governing the LST's and progeny generating functions
 for the innate response model updating A and b inplace.
-    
-Arguments: 
-    A = square matrix of size number of types
-    b = vector of length number of types 
-    pars = parameters of model
-    lifetimes = vector of lifetimes
-    λ = the growth rate 
-    phis = the previous moments used to calculate the nth moment
-    
-Outputs: 
-    None
+
+# Arguments
+    - A: square matrix of size number of types
+    - b: vector of length number of types
+    - pars: parameters of model
+    - lifetimes: vector of lifetimes
+    - λ: the growth rate
+    - phis: the previous moments used to calculate the nth moment
+
+# Outputs
+    - None
 """
 function diff_TCL_receptor_coeffs!(A, b, pars, lifetimes, λ, phis)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
@@ -43,13 +43,13 @@ function diff_TCL_receptor_coeffs!(A, b, pars, lifetimes, λ, phis)
 
     n = n_previous + 1
 
-    # Calculate the coefficients and constants from differentiation of the functional equation. 
+    # Calculate the coefficients and constants from differentiation of the functional equation.
     coeffs1, C1 = RandomTimeShifts.diff_linear(lifetimes[1], n, λ, 2, num_phis; b = σ)
-    # Coefficients for LT 2 is the sum of 2 factors. 
-    coeffs21, C21 = RandomTimeShifts.diff_quadratic(p_v, lifetimes[2], n, λ, phis,
-                                                    [2, 2, 3])
-    coeffs22, C22 = RandomTimeShifts.diff_quadratic(β2, lifetimes[2], n, λ, phis,
-                                                    [2, 2, 1])
+    # Coefficients for LT 2 is the sum of 2 factors.
+    coeffs21, C21 = RandomTimeShifts.diff_quadratic(
+        p_v, lifetimes[2], n, λ, phis, [2, 2, 3]
+    )
+    coeffs22, C22 = RandomTimeShifts.diff_quadratic(β2, lifetimes[2], n, λ, phis, [2, 2, 1])
     coeffs2 = coeffs21 + coeffs22
     C2 = C21 + C22
     coeffs3, C3 = RandomTimeShifts.diff_linear(lifetimes[3], n, λ, 1, num_phis; b = β1)
@@ -71,37 +71,39 @@ end
 
 Evaluates the Ricatti ODE's governing Fᵢ(s, t) for fixed u0 = s updating du in place.
 
-Arguments: 
-    du = required for inplace calculations when using OrdinaryDiffEq
-    u = current state
-    pars = parameters of model (see function)
-    t = dummy variable for the current time 
-    
-Outputs: 
-    None
+# Arguments
+    - du: required for inplace calculations when using OrdinaryDiffEq
+    - u: current state
+    - pars: parameters of model (see function)
+    - t: dummy variable for the current time
+
+# Outputs
+    - None
 """
 function F_fixed_s_ode!(du, u, pars, t)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
-    du .= [(σ + η) * ((η + σ * u[2]) / (σ + η) - u[1]),
+    du .= [
+        (σ + η) * ((η + σ * u[2]) / (σ + η) - u[1]),
         (γ + p_v + β2) *
         ((γ + p_v * u[2] * u[3] + β2 * u[2] * u[1]) / (γ + p_v + β2) - u[2]),
-        (c_v + β1) * ((c_v + β1 * u[1]) / (c_v + β1) - u[3])]
+        (c_v + β1) * ((c_v + β1 * u[1]) / (c_v + β1) - u[3])
+    ]
     return nothing
 end
 
 """
     tcl_extinct_ode!(dq, q, pars, t)
-    
+
 Formulates the system of ODEs for the extinction probabilities in the innate response model.
-    
-Arguments: 
-    dq = required for inplace calculations when using OrdinaryDiffEq
-    q = current state
-    pars = parameters of model
-    t = dummy variable for the current time
-    
-Outputs: 
-    None
+
+# Arguments
+    - dq: required for inplace calculations when using OrdinaryDiffEq
+    - q: current state
+    - pars: parameters of model
+    - t: dummy variable for the current time
+
+# Outputs
+    - None
 """
 function tcl_extinct_ode!(dq, q, pars, t)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
@@ -111,7 +113,7 @@ function tcl_extinct_ode!(dq, q, pars, t)
     dq .= [
         lifetimes[1] * ((η + σ * q[2]) / lifetimes[1] - q[1]),
         lifetimes[2] * ((γ + p_v * q[2] * q[3] + β2 * q[2] * q[1]) / lifetimes[2] - q[2]),
-        lifetimes[3] * ((c_v + β1 * q[1]) / lifetimes[3] - q[3]),
+        lifetimes[3] * ((c_v + β1 * q[1]) / lifetimes[3] - q[3])
     ]
 
     return nothing
@@ -119,48 +121,51 @@ end
 
 """
     calculate_moments(pars, num_moments)
-    
-Calculates the moments for the innate response model. 
-    
-Arguments: 
-    pars = model parameters
-    num_moments = the number of moments to calculate
-    
-Outputs: 
-    moments = an array of shape (num_moments, 3) with the moments for W_i in column i
+
+Calculates the moments for the innate response model.
+
+# Arguments
+    - pars: model parameters
+    - num_moments: the number of moments to calculate
+
+# Outputs
+    - moments: an array of shape (num_moments, 3) with the moments for W_i in column i
 """
-function calculate_moments(pars; num_moments = 31)
+function calculate_moments(pars; num_moments = 31, U0 = Int(8e7) - 1)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
-    Ω = [-(σ + η) σ 0
-         β2 -γ p_v
-         β1 0 -(c_v + β1)]
+    Ω = [
+        -(σ + η) σ 0
+        β2 -γ p_v
+        β1 0 -(c_v + β1)
+    ]
 
     λ1, u_norm, v_norm = RandomTimeShifts.calculate_BP_contributions(Ω)
 
     lifetimes = [σ + η, γ + p_v + β2, c_v + β1]
 
     function diff_TCL_receptor_coeffs_!(A, b, phis)
-        diff_TCL_receptor_coeffs!(A, b, pars, lifetimes, λ1, phis)
+        return diff_TCL_receptor_coeffs!(A, b, pars, lifetimes, λ1, phis)
     end
 
-    moments = RandomTimeShifts.calculate_moments_ND(diff_TCL_receptor_coeffs_!,
-                                                    num_moments, Ω)
+    moments = RandomTimeShifts.calculate_moments_ND(
+        diff_TCL_receptor_coeffs_!, num_moments, Ω
+    )
 
     return moments
 end
 
 """
     calculate_extinction_probs(pars)
-    
-Solves for the extinction probabilities. Note that this solves the ODEs which is equivalent to 
-the equations stated in the manuscript. 
-    
-Arguments: 
-    pars = model parameters
-    
-Outputs: 
-    q1 = an array of extinction probabilities where element i corresponds to starting with an
-         individual of type i.
+
+Solves for the extinction probabilities. Note that this solves the ODEs which is equivalent to
+the equations stated in the manuscript.
+
+# Arguments
+    - pars: model parameters
+
+# Outputs
+    - q1: an array of extinction probabilities where element i corresponds to starting with an
+          individual of type i.
 """
 function calculate_extinction_probs(pars)
     q0 = [0, 0, 0]
@@ -168,13 +173,15 @@ function calculate_extinction_probs(pars)
 
     prob = ODEProblem(tcl_extinct_ode!, q0, tspan, pars)
     prob = ODEProblem(F_fixed_s_ode!, q0, tspan, pars)
-    sol = solve(prob,
-                Tsit5();
-                save_start = false,
-                save_everystep = false,
-                save_end = true,
-                abstol = 1e-9,
-                reltol = 1e-9)
+    sol = solve(
+        prob,
+        Tsit5();
+        save_start = false,
+        save_everystep = false,
+        save_end = true,
+        abstol = 1e-9,
+        reltol = 1e-9
+    )
 
     q1 = sol.u[1]
     return q1
@@ -182,26 +189,29 @@ end
 
 """
     compute_time_shift_distribution(pars, Z0; ϵ = 1e-6, h = 0.1)
-    
-Computes the pdf and cdf values for the time-shift distribution. 
-    
-Arguments: 
-    pars = model parameters
-    Z0 = initial condition for the Branching process (E, I, V)
-    num_moments = number of moments to use in the calculation
-    ϵ = the tolerance for the neighbourhood about 0, has a default
-    h = the step size for the imbedded process, defaults at h = 1.0
-    
-Outputs: 
-    t_range = range of values where the pdf is evaluated
-    pdf_vals = pdf values corresponding to t_range
-    cdf_vals = cdf values corresponding to t_range
+
+Computes the pdf and cdf values for the time-shift distribution.
+
+# Arguments
+    - pars: model parameters
+    - Z0: initial condition for the Branching process (E, I, V)
+    - num_moments: number of moments to use in the calculation
+    - ϵ: the tolerance for the neighbourhood about 0, has a default
+    - h: the step size for the imbedded process, defaults at h = 1.0
+
+# Outputs
+    - t_range: range of values where the pdf is evaluated
+    - pdf_vals: pdf values corresponding to t_range
+    - cdf_vals: cdf values corresponding to t_range
 """
 function compute_time_shift_distribution(pars, Z0; ϵ = 1e-6, h = 0.1)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
-    Ω = [-(σ + η) σ 0
-         β2 -γ p_v
-         β1 0 -(c_v + β1)]
+
+    Ω = [
+        -(σ + η) σ 0
+        β2 -γ p_v
+        β1 0 -(c_v + β1)
+    ]
 
     λ1, u_norm, v_norm = RandomTimeShifts.calculate_BP_contributions(Ω)
     EW = sum(Z0 .* u_norm)
@@ -212,8 +222,9 @@ function compute_time_shift_distribution(pars, Z0; ϵ = 1e-6, h = 0.1)
     num_moments = size(moments, 1)
     L = RandomTimeShifts.error_bounds(ϵ, error_moment, num_moments)
 
-    prob = ODEProblem(F_fixed_s_ode!, zeros(length(Z0)), (0, h), pars,
-                      save_start = false, saveat = h)
+    prob = ODEProblem(
+        F_fixed_s_ode!, zeros(length(Z0)), (0, h), pars, save_start = false, saveat = h
+    )
     F_offspring(s) = RandomTimeShifts.F_offspring_ode(s, prob)
     coeffs = RandomTimeShifts.moment_coeffs(moments)
 
@@ -224,16 +235,16 @@ function compute_time_shift_distribution(pars, Z0; ϵ = 1e-6, h = 0.1)
     q_star = prod(q1 .^ Z0)
     W_cdf_ilst = RandomTimeShifts.construct_W_cdf_ilst(lst_w, q_star)
 
-    # Distance between points of the CDF 
+    # Distance between points of the CDF
     Δt = 0.001
     t_range = -2.5:Δt:1.5
 
     F_τ_cdf(t) = W_cdf_ilst(exp(λ1 * t) * EW)
     cdf_vals = RandomTimeShifts.eval_cdf(F_τ_cdf, t_range)
-    # Differentiating removes the point mass and then we just need to renormalise 
+    # Differentiating removes the point mass and then we just need to renormalise
     pdf_vals = RandomTimeShifts.pdf_from_cdf(cdf_vals, Δt) ./ (1 - q_star)
     # We need to remove off the jump in the CDF and then renormalise
-    # Think about this at the limits x -> 0 and x -> ∞ of 
+    # Think about this at the limits x -> 0 and x -> ∞ of
     # (F(x) - q_star) / (1 - q_star) and it makes sense.
     cdf_vals = (cdf_vals .- q_star) ./ (1 - q_star)
 
@@ -242,17 +253,17 @@ end
 
 """
     tcl_receptor_deterministic!(dx, x, pars, t)
-    
-Evaluates the deterministic approximation at a particular value of x. 
 
-Arguments: 
-    dx = required for inplace calculations when using OrdinaryDiffEq
-    x = current state
-    pars = model parameters
-    t = dummy variable for the current time
-    
-Outputs: 
-    None
+Evaluates the deterministic approximation at a particular value of x.
+
+# Arguments
+    - dx: required for inplace calculations when using OrdinaryDiffEq
+    - x: current state
+    - pars: model parameters
+    - t: dummy variable for the current time
+
+# Outputs
+    - None
 """
 function tcl_receptor_deterministic!(dx, x, pars, t)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
@@ -270,16 +281,16 @@ end
 
 """
     estimate_time_shifts(pars, Z0, K)
-    
-Estimates the time-shift distributions using simulation. 
 
-Arguments: 
-    pars = model parameters
-    Z0 = initial condition 
-    K = population size
-    
-Outputs: 
-    time_delays_approx = approximate time-shifts 
+Estimates the time-shift distributions using simulation.
+
+# Arguments
+    - pars: model parameters
+    - Z0: initial condition
+    - K: population size
+
+# Outputs
+    - time_delays_approx: approximate time-shifts
 """
 function estimate_time_shifts(pars, Z0, K)
     obs_t = 10.0

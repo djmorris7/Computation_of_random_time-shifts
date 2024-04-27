@@ -19,18 +19,18 @@ using RandomTimeShifts
 
 """
     diff_SIR_coeffs(β, lifetimes, λ, phis)
-    
-Function which differentiates the functional equation of the PGF and LST. 
-        
-Arguments: 
-    β = effective transmission parameter 
-    lifetimes = β + γ
-    λ = the growth rate 
-    phis = the previous moments used to calculate the nth moment
-    
-Outputs: 
-    A[1] = coefficient of nth moment
-    b = constant term
+
+Function which differentiates the functional equation of the PGF and LST.
+
+# Arguments
+    - β: effective transmission parameter
+    - lifetimes: β + γ
+    - λ: the growth rate
+    - phis: the previous moments used to calculate the nth moment
+
+# Outputs
+    - A[1]: coefficient of nth moment
+    - b: constant term
 """
 function diff_SIR_coeffs(β, lifetimes, λ, phis)
     n_previous = length(phis)
@@ -45,13 +45,13 @@ end
 
 Evaluates the Ricatti ODE governing F(s, t) for fixed u0 = s.
 
-Arguments: 
-    u = current state
-    pars = (R0, γ_inv)
-    t = dummy variable for the current time 
-    
-Outputs: 
-    du = value of ODE
+# Arguments
+    - u: current state
+    - pars: (R0, γ_inv)
+    - t: dummy variable for the current time
+
+# Outputs
+    - du: value of ODE
 """
 function F_fixed_s(u, pars, t)
     R0, γ_inv = pars
@@ -63,7 +63,7 @@ end
 
 """
     F_offspring_ode(s, t, pars)
-    
+
 Calculates the PGF for the imbedded process given a fixed s and integrating over (0, t
 with pars = (R0, γ_inv).
 """
@@ -77,18 +77,18 @@ end
 
 """
 sir_deterministic!(du, u, pars, t)
-    
-Evaluate the system of ordinary differential equations for the SIR model with parameters 
+
+Evaluate the system of ordinary differential equations for the SIR model with parameters
 pars = (R0, γ_inv).
 
-Arguments: 
-    du = required for inplace calculations when using OrdinaryDiffEq
-    u = current state
-    pars = model parameters in form (R0, γ_inv)
-    t = dummy variable for the current time
-    
-Outputs: 
-    None
+# Arguments
+    - du: required for inplace calculations when using OrdinaryDiffEq
+    - u: current state
+    - pars: model parameters in form (R0, γ_inv)
+    - t: dummy variable for the current time
+
+# Outputs
+    - None
 """
 function sir_deterministic!(du, u, pars, t)
     R0, γ_inv = pars
@@ -106,17 +106,17 @@ end
 
 """
     compute_time_shift_distribution(pars, K, Z0, results_dir)
-    
-Computes the LST using our method and inverts it. 
 
-Arguments: 
-    pars = (R0, γ_inv)
-    K = population size 
-    Z0 = initial condition for the SIR model
-    results_dir = output directory
-    
-Outputs: 
-    None
+Computes the LST using our method and inverts it.
+
+# Arguments
+    - pars: (R0, γ_inv)
+    - K: population size
+    - Z0: initial condition for the SIR model
+    - results_dir: output directory
+
+# Outputs
+    - None
 """
 function compute_time_shift_distribution(pars, K, Z0, results_dir)
     (R0, γ_inv) = pars
@@ -165,10 +165,15 @@ function compute_time_shift_distribution(pars, K, Z0, results_dir)
     Δt = 0.1
     s_range = 0:Δt:10
 
-    CSV.write(joinpath(results_dir, "phi_vals.csv"),
-              DataFrame(s = s_range, phi = lst_w.(s_range)))
+    CSV.write(
+        joinpath(results_dir, "w_cdf.csv"), DataFrame(s = s_range, cdf = W_cdf.(s_range))
+    )
 
-    # Distance between points of the CDF 
+    CSV.write(
+        joinpath(results_dir, "phi_vals.csv"), DataFrame(s = s_range, phi = lst_w.(s_range))
+    )
+
+    # Distance between points of the CDF
     h = 0.1
     t_range = -30:h:15
 
@@ -179,24 +184,59 @@ function compute_time_shift_distribution(pars, K, Z0, results_dir)
     cdf_vals = RandomTimeShifts.eval_cdf(F_τ_cdf, t_range)
     pdf_vals = RandomTimeShifts.pdf_from_cdf(cdf_vals, h) ./ (1 - q_star)
 
-    CSV.write(joinpath(results_dir, "pdf_vals.csv"),
-              DataFrame(; t = t_range, pdf = pdf_vals))
+    return CSV.write(
+        joinpath(results_dir, "pdf_vals.csv"), DataFrame(; t = t_range, pdf = pdf_vals)
+    )
+end
+
+"""
+    compute_time_shift_distribution(pars, K, Z0, results_dir)
+
+Computes the LST using our method and inverts it.
+
+# Arguments
+    - pars: (R0, γ_inv)
+    - K: population size
+    - Z0: initial condition for the SIR model
+    - results_dir: output directory
+
+# Outputs
+    - None
+"""
+function compute_time_shift_distribution_m3(pars, K, Z0, results_dir)
+    (R0, γ_inv) = pars
+    γ = 1 / γ_inv
+    β = R0 * γ
+
+    a = γ + β
+    λ = β - γ
+    q = γ / β
+
+    num_moments = 21
+
+    μ = 2 * β / (β + γ)
+
+    diff_SIR_coeffs_(phis) = diff_SIR_coeffs(β, a, λ, phis)
+
+    moments = RandomTimeShifts.calculate_moments_1D(diff_SIR_coeffs_)
+
+    return moments = moments[1:(end - 1)]
 end
 
 """
     estimate_time_shifts(pars, K, Z0, results_dir)
 
-Estimates the time-shift distributions empirically using the difference in hitting times 
-between the deterministic and stochastic simulations. 
+Estimates the time-shift distributions empirically using the difference in hitting times
+between the deterministic and stochastic simulations.
 
-Arguments: 
-    pars = (R0, γ_inv)
-    K = population size 
-    Z0 = initial condition for the SIR model
-    results_dir = output directory
-    
-Outputs: 
-    None
+# Arguments
+    - pars: (R0, γ_inv)
+    - K: population size
+    - Z0: initial condition for the SIR model
+    - results_dir: output directory
+
+# Outputs
+    - None
 """
 function estimate_time_shifts(pars, K, Z0, results_dir)
     obs_t = 70
@@ -224,6 +264,8 @@ function estimate_time_shifts(pars, K, Z0, results_dir)
     peak_timing_det = sol.t[u_idx]
     time_delays_approx = peak_timing_det .- peak_timings
 
-    CSV.write(joinpath(results_dir, "time_delays_approx.csv"),
-              DataFrame(; time_shift = time_delays_approx))
+    return CSV.write(
+        joinpath(results_dir, "time_delays_approx.csv"),
+        DataFrame(; time_shift = time_delays_approx)
+    )
 end

@@ -1,10 +1,11 @@
 """
-TCL_receptor_main.jl 
-    This script runs the code to produce the figures for the innate
-    response model in the paper. 
+    TCL_receptor_main.jl
 
 Author: Dylan Morris
-Date: 2023 
+Date: 2023
+
+This script runs the code to produce the figures for the innate
+response model in the paper.
 """
 
 include("TCL_receptor_W.jl")
@@ -13,7 +14,7 @@ include("TCL_receptor_simulators.jl")
 function main()
     figures_dir, results_dir = make_dirs("TCL_receptor")
 
-    # Set seed for reproducibility. 
+    # Set seed for reproducibility.
     Random.seed!(2023)
 
     # Testing the gillespie simulator
@@ -35,15 +36,16 @@ function main()
     # X(t) = (U, R, E, I, V, F)
     Z0 = [K - 1, 0, 1, 0, 0, 0]
 
-    # First we look at the agreement between the branching process approximation and the 
+    # First we look at the agreement between the branching process approximation and the
     # exact (gillespie) simulations.
     nsims = 20000
     # Run gillespie simulations over the time interval 0:obs_t - 1
     save_at = 0.01
     obs_t = 14.0
 
-    t_out, Z_out, extinct = tcl_receptor_gillespie(pars, K, Z0; tf = obs_t,
-                                                   save_at = save_at)
+    t_out, Z_out, extinct = tcl_receptor_gillespie(
+        pars, K, Z0; tf = obs_t, save_at = save_at
+    )
 
     Z_samples = stack([Z_out[i:length(Z0):end] for (i, z) in enumerate(Z0)])
 
@@ -61,7 +63,8 @@ function main()
 
     ζ_samples = max.(0, stack(K * sol.u, dims = 1))
 
-    τ = sol.t[findfirst(x -> x > 2000, ζ_samples[:, 5])] -
+    τ =
+        sol.t[findfirst(x -> x > 2000, ζ_samples[:, 5])] -
         t_range[findfirst(x -> x > 2000, Z_samples[:, 5])]
 
     println("Value of τ used is: $τ")
@@ -73,11 +76,13 @@ function main()
     times_shifted = times .+ τ
 
     if any(times_shifted .> 0)
-        sol = solve(prob,
-                    Tsit5(),
-                    saveat = times_shifted[times_shifted .>= 0],
-                    abstol = 1e-11,
-                    reltol = 1e-11)
+        sol = solve(
+            prob,
+            Tsit5(),
+            saveat = times_shifted[times_shifted .>= 0],
+            abstol = 1e-11,
+            reltol = 1e-11
+        )
 
         for (i, s) in enumerate(samples_det)
             s[times_shifted .>= 0] .= K * [sol.u[t][i] for t in eachindex(sol.u)]
@@ -93,7 +98,7 @@ function main()
     df_all_states = DataFrame([times stack(samples_det)], [:time, :U, :R, :E, :I, :V, :A])
     CSV.write(joinpath(results_dir, "det_all_states.csv"), df_all_states)
 
-    ## Now do the timeshift stuff 
+    ## Now do the timeshift stuff
 
     Z0_bp = Z0[(begin + 2):(end - 1)]
 
@@ -111,9 +116,11 @@ function main()
     W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
 
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
-    Ω = [-(σ + η) σ 0
-         β2 -γ p_v
-         β1 0 -(c_v + β1)]
+    Ω = [
+        -(σ + η) σ 0
+        β2 -γ p_v
+        β1 0 -(c_v + β1)
+    ]
 
     λ1, u_norm, v_norm = RandomTimeShifts.calculate_BP_contributions(Ω)
     EW = sum(Z0_bp .* u_norm)

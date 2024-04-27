@@ -13,38 +13,39 @@ using Distributions
 
 Simulates the innate response model from the paper using the SSA and tau-leaping.
 
-Arguments: 
-    pars::Vector{Float64} = vector of parameters for the innate response model
-    K::Int = population size 
-    Z0::Vector{Int} = vector of initial conditions 
-    tf::Float64 = maximum simulation time
-    save_at = when to save the simulation 
-    τ = step size for tau leaping
-    
-    
-Outputs: 
-    t_vec = simulation times 
-    Z_mat = Output matrix 
-    extinct = whether the process went extinct or not 
+# Arguments
+    - pars::Vector{Float64}: vector of parameters for the innate response model
+    - K::Int: population size
+    - Z0::Vector{Int}: vector of initial conditions
+    - tf::Float64: maximum simulation time
+    - save_at: when to save the simulation
+    - τ: step size for tau leaping
+
+# Outputs
+    - t_vec: simulation times
+    - Z_mat: Output matrix
+    - extinct: whether the process went extinct or not
 """
-function tcl_receptor_gillespie(pars::Vector{Float64},
-                                K::Int,
-                                Z0::Vector{Int};
-                                tf::Float64 = 100.0,
-                                save_at::Float64 = 1.0,
-                                τ::Float64 = 0.01)
+function tcl_receptor_gillespie(
+    pars::Vector{Float64},
+    K::Int,
+    Z0::Vector{Int};
+    tf::Float64 = 100.0,
+    save_at::Float64 = 1.0,
+    τ::Float64 = 0.01
+)
     (β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ) = pars
     β1_norm = β1 / K
     β2_norm = β2 / K
     ϱ_norm = ϱ / K
 
     Z = deepcopy(Z0)
-    # Calculate the actual number of steps 
+    # Calculate the actual number of steps
     n = ceil(Int, tf / save_at) + 1
     n_states = length(Z)
     Z_mat = zeros(Int, n * n_states)
     t_vec = zeros(Float64, n)
-    # Propensity vector 
+    # Propensity vector
     a = zeros(Float64, 11)
     # Representation of the stoichiometry matrix
     # X(t) = (U, R, E, I, V, F)
@@ -59,7 +60,7 @@ function tcl_receptor_gillespie(pars::Vector{Float64},
         [0, 0, 0, 0, 1, 0],         # (V) --> (V+1)
         [0, 0, 0, 0, -1, 0],         # (V) --> (V-1)
         [0, 0, 0, 0, 0, 1],          # (F) --> (F+1)
-        [0, 0, 0, 0, 0, -1],          # (F) --> (F-1)
+        [0, 0, 0, 0, 0, -1]          # (F) --> (F-1)
     ]
 
     # Store initial state
@@ -74,7 +75,7 @@ function tcl_receptor_gillespie(pars::Vector{Float64},
         a[1] = β1_norm * U * V
         a[2] = β2_norm * U * I
         a[3] = ϱ_norm * U * F
-        # Removal rate of infected cells 
+        # Removal rate of infected cells
         a[4] = δ * R
         # Production rate of viral particles
         a[5] = σ * E
@@ -102,7 +103,7 @@ function tcl_receptor_gillespie(pars::Vector{Float64},
                 curr_t += save_at
             end
 
-            # Determine next event via the next-reaction method 
+            # Determine next event via the next-reaction method
             ru = rand() * a0
             cumsum!(a, a)
             event_idx = findfirst(x -> x > ru, a)
@@ -150,36 +151,38 @@ end
                               tf::Float64 = 100.0,
                               save_at::Float64 = 1.0,
                               τ::Float64 = 0.01)
-                              
-Simulates the innate response model using the SSA but focuses on hitting time to reach a particular viral 
-load = target_Z. 
 
-Arguments: 
-    pars::Vector{Float64} = vector of parameters for the SEIR model in form (R0, σ_inv, γ_inv)
-    K::Int = population size 
-    Z0::Vector{Int} = vector of initial conditions 
-    target_Z = target number of infected for hitting time calculation
-    tf::Float64 = maximum simulation time
-    τ = step size for tau-leaping
-    
-Outputs: 
-    hitting_time = the hitting time
+Simulates the innate response model using the SSA but focuses on hitting time to reach a particular viral
+load = target_Z.
+
+# Arguments
+    - pars::Vector{Float64}: vector of parameters for the SEIR model in form (R0, σ_inv, γ_inv)
+    - K::Int: population size
+    - Z0::Vector{Int}: vector of initial conditions
+    - target_Z: target number of infected for hitting time calculation
+    - tf::Float64: maximum simulation time
+    - τ: step size for tau-leaping
+
+# Outputs
+    - hitting_time: the hitting time
 """
-function tcl_receptor_hitting_time(pars::Vector{Float64},
-                                   K::Int,
-                                   Z0::Vector{Int},
-                                   target_Z::Int;
-                                   tf::Float64 = 100.0,
-                                   τ::Float64 = 0.01)
+function tcl_receptor_hitting_time(
+    pars::Vector{Float64},
+    K::Int,
+    Z0::Vector{Int},
+    target_Z::Int;
+    tf::Float64 = 100.0,
+    τ::Float64 = 0.01
+)
     (β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ) = pars
     β1_norm = β1 / K
     β2_norm = β2 / K
     ϱ_norm = ϱ / K
 
     Z = deepcopy(Z0)
-    # Calculate the actual number of steps 
+    # Calculate the actual number of steps
     n_states = length(Z)
-    # Propensity vector 
+    # Propensity vector
     a = zeros(Float64, 11)
     # Representation of the stoichiometry matrix
     # X(t) = (U, R, E, I, V, F)
@@ -194,7 +197,7 @@ function tcl_receptor_hitting_time(pars::Vector{Float64},
         [0, 0, 0, 0, 1, 0],         # (V) --> (V+1)
         [0, 0, 0, 0, -1, 0],         # (V) --> (V-1)
         [0, 0, 0, 0, 0, 1],          # (F) --> (F+1)
-        [0, 0, 0, 0, 0, -1],          # (F) --> (F-1)
+        [0, 0, 0, 0, 0, -1]          # (F) --> (F-1)
     ]
 
     t = 0.0
@@ -206,7 +209,7 @@ function tcl_receptor_hitting_time(pars::Vector{Float64},
         a[1] = β1_norm * U * V
         a[2] = β2_norm * U * I
         a[3] = ϱ_norm * U * F
-        # Removal rate of infected cells 
+        # Removal rate of infected cells
         a[4] = δ * R
         # Production rate of viral particles
         a[5] = σ * E
@@ -225,7 +228,7 @@ function tcl_receptor_hitting_time(pars::Vector{Float64},
             dt = -log(rand()) / a0
             t = t + dt
 
-            # Determine next event via the next-reaction method 
+            # Determine next event via the next-reaction method
             ru = rand() * a0
             cumsum!(a, a)
             event_idx = findfirst(x -> x > ru, a)
@@ -264,17 +267,17 @@ end
 
 """
     tcl_receptor_deterministic!(dx, x, pars, t)
-    
-Evaluates the deterministic system for the innate response model at a given state x. 
 
-Arguments: 
-    dx = required for inplace calculations when using OrdinaryDiffEq
-    x = current state
-    pars = model parameters
-    t = dummy variable for the current time
-    
-Outputs: 
-    None
+Evaluates the deterministic system for the innate response model at a given state x.
+
+# Arguments
+    - dx: required for inplace calculations when using OrdinaryDiffEq
+    - x: current state
+    - pars: model parameters
+    - t: dummy variable for the current time
+
+# Outputs
+    - None
 """
 function tcl_receptor_deterministic!(dx, x, pars, t)
     β1, β2, σ, η, γ, p_v, c_v, p_a, c_a, ϱ, δ = pars
