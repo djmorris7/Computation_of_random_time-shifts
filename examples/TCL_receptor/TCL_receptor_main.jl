@@ -110,7 +110,23 @@ function main()
     df_pdf = DataFrame(t = t_range, p = pdf_vals)
     CSV.write(joinpath(results_dir, "pdf_vals_divergent.csv"), df_pdf)
 
-    moments = calculate_moments(pars; num_moments = 5)
+    # moments = calculate_moments(pars; num_moments = 5)
+    Ω = [
+        -(σ + η) σ 0
+        β2 -γ p_v
+        β1 0 -(c_v + β1)
+    ]
+
+    lifetimes = [σ + η, γ + p_v + β2, c_v + β1]
+    αs = Dict(i => nothing for i in 1:3)
+    βs = Dict(i => nothing for i in 1:3)
+    # pgf 1 is linear, pgf 3 is linear
+    αs = Dict(1 => Dict([1, 2] => σ), 3 => Dict([3, 1] => β1), 2 => nothing)
+    # pgf 2 has two quadratic terms, 1 and 3 have none
+    βs = Dict(2 => Dict([2, 2, 3] => p_v, [2, 1, 2] => β2), 1 => nothing, 3 => nothing)
+
+    moments = calculate_moments_generic(Ω, αs, βs, lifetimes; num_moments = 5)
+
     q1 = calculate_extinction_probs(pars)
     pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
     W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)

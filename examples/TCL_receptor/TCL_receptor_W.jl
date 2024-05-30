@@ -7,6 +7,7 @@ using Distributions
 using Random
 using Statistics
 using StaticArrays
+using ForwardDiff
 
 ##
 
@@ -242,7 +243,10 @@ function compute_time_shift_distribution(pars, Z0; ϵ = 1e-6, h = 0.1)
     F_τ_cdf(t) = W_cdf_ilst(exp(λ1 * t) * EW)
     cdf_vals = RandomTimeShifts.eval_cdf(F_τ_cdf, t_range)
     # Differentiating removes the point mass and then we just need to renormalise
-    pdf_vals = RandomTimeShifts.pdf_from_cdf(cdf_vals, Δt) ./ (1 - q_star)
+    f_τ_pdf(t) = ForwardDiff.derivative(F_τ_cdf, t)
+
+    pdf_vals = f_τ_pdf.(t_range) ./ (1 - q_star)
+    # pdf_vals = RandomTimeShifts.pdf_from_cdf(cdf_vals, Δt) ./ (1 - q_star)
     # We need to remove off the jump in the CDF and then renormalise
     # Think about this at the limits x -> 0 and x -> ∞ of
     # (F(x) - q_star) / (1 - q_star) and it makes sense.
