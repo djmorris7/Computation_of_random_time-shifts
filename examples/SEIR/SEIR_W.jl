@@ -9,6 +9,7 @@ using Statistics
 using StaticArrays
 using Roots
 using BenchmarkTools
+using ForwardDiff
 
 ##
 
@@ -237,7 +238,14 @@ function compute_time_shift_distribution(pars, Z0, num_moments; ϵ = 1e-6, h = 1
 
     EW = sum(Z0 .* u_norm)
 
-    moments = calculate_moments(pars, num_moments + 1)
+    # moments = calculate_moments(pars, num_moments + 1)
+
+    αs = Dict(1 => Dict([1, 2] => σ), 2 => nothing)
+    βs = Dict(1 => nothing, 2 => Dict([2, 1, 2] => β))
+    lifetimes = [σ, β + γ]
+
+    moments = calculate_moments_generic(Ω, αs, βs, lifetimes; num_moments = num_moments + 1)
+
     error_moment = moments[end, :]
     moments = moments[begin:(end - 1), :]
 
@@ -262,7 +270,9 @@ function compute_time_shift_distribution(pars, Z0, num_moments; ϵ = 1e-6, h = 1
 
     F_τ_cdf(t) = W_cdf_ilst(exp(λ1 * t) * EW)
     cdf_vals = RandomTimeShifts.eval_cdf(F_τ_cdf, t_range)
-    pdf_vals = RandomTimeShifts.pdf_from_cdf(cdf_vals, Δt) ./ (1 - q_star)
+    f_τ_pdf(t) = ForwardDiff.derivative(F_τ_cdf, t)
+
+    pdf_vals = f_τ_pdf.(t_range) ./ (1 - q_star)
     # We need to remove off the jump in the CDF and then renormalise
     # Think about this at the limits x -> 0 and x -> ∞ of
     # (F(x) - q_star) / (1 - q_star) and it makes sense.
@@ -391,6 +401,13 @@ function run_initial_condition_experiment()
     pars = [R0, σ_inv, γ_inv]
     K = Int(10^6)
 
+    β, σ, γ = epi_pars_to_sim_pars(pars)
+
+    Ω = [
+        -σ σ
+        β -γ
+    ]
+
     # Initial condition vectors
     E0_v = [1, 5, 5, 15]
     I0_v = [0, 0, 5, 10]
@@ -410,12 +427,24 @@ function run_initial_condition_experiment()
         time_delays_approx = estimate_time_shifts(pars, Z0, K)
 
         # Estimate the distribution of timeshifts through m3 method
-        moments = calculate_moments(pars, num_moments)
-        q1 = calculate_extinction_probs(pars)
-        pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
-        W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
+        # moments = calculate_moments(pars, num_moments)
 
-        df_pars_m3 = DataFrame(stack(pars_m3), :auto)
+        αs = Dict(1 => Dict([1, 2] => σ), 2 => nothing)
+        βs = Dict(1 => nothing, 2 => Dict([2, 1, 2] => β))
+        lifetimes = [σ, β + γ]
+
+        moments = calculate_moments_generic(Ω, αs, βs, lifetimes; num_moments = num_moments)
+
+        q1 = calculate_extinction_probs(pars)
+        # pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
+        # W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
+        q_star = prod(q1 .^ Z0_bp)
+        W_moments = RandomTimeShifts.compute_W_moments(moments, Z0_bp, q_star)
+        W_pars = RandomTimeShifts.minimise_loss(W_moments)
+        W_samples_m3 = [RandomTimeShifts.sample_W(W_pars) for _ in 1:100000]
+
+        # df_pars_m3 = DataFrame(stack(pars_m3), :auto)
+        df_pars_m3 = DataFrame(reshape(W_pars, 1, 3), :auto)
         CSV.write(joinpath(results_dir, "pars_m3_$id.csv"), df_pars_m3)
 
         # Calculate BP stuff required for getting the timeshifts using simulation and m3
@@ -454,6 +483,13 @@ function run_system_size_experiment()
     pars = [R0, σ_inv, γ_inv]
     Ks = [10^x for x in 3:6]
 
+    β, σ, γ = epi_pars_to_sim_pars(pars)
+
+    Ω = [
+        -σ σ
+        β -γ
+    ]
+
     # Initial condition vectors
     E0 = 1
     I0 = 0
@@ -473,12 +509,25 @@ function run_system_size_experiment()
         time_delays_approx = estimate_time_shifts(pars, Z0, K)
 
         # Estimate the distribution of timeshifts through m3 method
-        moments = calculate_moments(pars, num_moments)
-        q1 = calculate_extinction_probs(pars)
-        pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
-        W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
+        # moments = calculate_moments(pars, num_moments)
 
-        df_pars_m3 = DataFrame(stack(pars_m3), :auto)
+        αs = Dict(1 => Dict([1, 2] => σ), 2 => nothing)
+        βs = Dict(1 => nothing, 2 => Dict([2, 1, 2] => β))
+        lifetimes = [σ, β + γ]
+
+        moments = calculate_moments_generic(
+            Ω, αs, βs, lifetimes; num_moments = num_moments + 1
+        )
+
+        q1 = calculate_extinction_probs(pars)
+        # pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
+        # W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
+        q_star = prod(q1 .^ Z0_bp)
+        W_moments = RandomTimeShifts.compute_W_moments(moments, Z0_bp, q_star)
+        W_pars = RandomTimeShifts.minimise_loss(W_moments)
+        W_samples_m3 = [RandomTimeShifts.sample_W(W_pars) for _ in 1:100000]
+
+        df_pars_m3 = DataFrame(reshape(W_pars, 1, 3), :auto)
         CSV.write(joinpath(results_dir, "pars_m3_N_$id.csv"), df_pars_m3)
 
         # Calculate BP stuff required for getting the timeshifts using simulation and m3
@@ -515,6 +564,16 @@ function run_m3_timeshift_distribution_control()
     R0 = 1.7
     σ_inv = 2.0
     γ_inv = 3.0
+
+    σ = 1 / σ_inv
+    γ = 1 / γ_inv
+    β = R0 * γ
+
+    Ω = [
+        -σ σ
+        β -γ
+    ]
+
     pars = [R0, σ_inv, γ_inv]
     K = Int(10^6)
 
@@ -527,10 +586,21 @@ function run_m3_timeshift_distribution_control()
     # Require 5 moments for the surrogate approach
     num_moments = 5
     # Estimate the distribution of timeshifts through m3 method
-    moments = calculate_moments(pars, num_moments)
+    # moments = calculate_moments(pars, num_moments)
+
+    αs = Dict(1 => Dict([1, 2] => σ), 2 => nothing)
+    βs = Dict(1 => nothing, 2 => Dict([2, 1, 2] => β))
+    lifetimes = [σ, β + γ]
+
+    moments = calculate_moments_generic(Ω, αs, βs, lifetimes; num_moments = num_moments)
+
     q1 = calculate_extinction_probs(pars)
-    pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
-    W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
+    # pars_m3 = RandomTimeShifts.minimise_loss(moments, q1)
+    # W_samples_m3 = RandomTimeShifts.sample_W(100000, pars_m3, q1, Z0_bp)
+    q_star = prod(q1 .^ Z0_bp)
+    W_moments = RandomTimeShifts.compute_W_moments(moments, Z0_bp, q_star)
+    W_pars = RandomTimeShifts.minimise_loss(W_moments)
+    W_samples_m3 = [RandomTimeShifts.sample_W(W_pars) for _ in 1:100000]
 
     # Calculate BP stuff required for getting the timeshifts using simulation and m3
     β, σ, γ = epi_pars_to_sim_pars(pars)
@@ -688,7 +758,15 @@ function run_h_benchmarks()
 
         λ1, u_norm, v_norm = RandomTimeShifts.calculate_BP_contributions(Ω)
 
-        moments = calculate_moments(pars, num_moments + 1)
+        # moments = calculate_moments(pars, num_moments + 1)
+
+        αs = Dict(1 => Dict([1, 2] => σ), 2 => nothing)
+        βs = Dict(1 => nothing, 2 => Dict([2, 1, 2] => β))
+        lifetimes = [σ, β + γ]
+        moments = calculate_moments_generic(
+            Ω, αs, βs, lifetimes; num_moments = num_moments + 1
+        )
+
         error_moment = moments[end, :]
         moments = moments[begin:(end - 1), :]
         L = RandomTimeShifts.error_bounds(1e-6, error_moment, num_moments)
