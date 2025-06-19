@@ -1,7 +1,7 @@
 # Computation_of_random_time-shifts
 
 Code supporting the manuscript:
-> Dylan Morris, John Maclean and Andrew J. Black., 2023. Computation of random time shift distributions for stochastic population models.
+> Dylan Morris, John Maclean and Andrew J. Black, 2024. Computation of random time-shift distributions for stochastic population models. Journal of Mathematical Biology, 89, 33, 10.1007/s00285-024-02132-6.
 
 ## Installation
 
